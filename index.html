@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intrinsic Image Popularity Assessment</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <br>
+            <h1><i class="fas fa-chart-line"></i> Intrinsic Image Popularity Test</h1>
+            <br>
+            <p>Predict how popular an image would be on based on visual content alone</p>
+        </header>
+
+        <main>
+            <!-- Upload Section -->
+            <div class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-content">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <h3>Drop your image here</h3>
+                        <p>or <span class="browse-btn">browse files</span></p>
+                        <input type="file" id="fileInput" accept="image/*" hidden>
+                    </div>
+                </div>
+                
+                <div class="file-info" id="fileInfo" style="display: none;">
+                    <div class="file-details">
+                        <i class="fas fa-file-image"></i>
+                        <div>
+                            <div class="file-name" id="fileName"></div>
+                            <div class="file-size" id="fileSize"></div>
+                        </div>
+                    </div>
+                    <button class="remove-btn" id="removeFile">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Image Preview Section -->
+            <div class="preview-section" id="previewSection" style="display: none;">
+                <div class="image-container">
+                    <img id="imagePreview" alt="Preview">
+                    <div class="image-overlay">
+                        <div class="image-info">
+                            <span id="imageDimensions"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analysis Section -->
+            <div class="analysis-section" id="analysisSection" style="display: none;">
+                <button class="analyze-btn" id="analyzeBtn">
+                    <i class="fas fa-magic"></i>
+                    Analyze Popularity
+                </button>
+                
+                <div class="loading" id="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Analyzing image popularity...</p>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <div class="result-card">
+                    <div class="score-display">
+                        <div class="score-circle">
+                            <div class="score-value" id="scoreValue">0</div>
+                            <div class="score-label">Popularity Score</div>
+                        </div>
+                        <div class="score-description">
+                            <h3 id="scoreTitle">Fair</h3>
+                            <p id="scoreDescription">This image has moderate appeal for social media.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="score-breakdown">
+                        <h4>Score Interpretation</h4>
+                        <div class="score-ranges">
+                            <div class="score-range excellent">
+                                <span class="range-label">Excellent</span>
+                                <span class="range-value">4.0 - 6.0</span>
+                            </div>
+                            <div class="score-range good">
+                                <span class="range-label">Good</span>
+                                <span class="range-value">2.0 - 4.0</span>
+                            </div>
+                            <div class="score-range fair">
+                                <span class="range-label">Fair</span>
+                                <span class="range-value">0.0 - 2.0</span>
+                            </div>
+                            <div class="score-range poor">
+                                <span class="range-label">Poor</span>
+                                <span class="range-value">< 0.0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="insights-card">
+                    <h4><i class="fas fa-lightbulb"></i> Insights</h4>
+                    <div class="insights-content" id="insights">
+                        <p>Based on the research, images that perform well typically feature:</p>
+                        <ul>
+                            <li>Attractive people and faces</li>
+                            <li>High-quality photography</li>
+                            <li>Interesting compositions</li>
+                            <li>Scenic landscapes</li>
+                            <li>Cute animals</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <button class="reset-btn" id="resetBtn">
+                    <i class="fas fa-redo"></i>
+                    Analyze Another Image
+                </button>
+            </div>
+        </main>
+
+        <footer>
+            <div class="footer-content">
+                <p>Based on the research: <em><a href="1907.01985.pdf">Intrinsic Image Popularity Assessment"</a></em> by Ding et al.</p>
+                <p>Model trained on <a href="dataset/test.csv">2.5M Instagram image pairs</a> • 76.65% accuracy</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Model Loading Status -->
+    <div class="model-status" id="modelStatus">
+        <div class="status-content">
+            <div class="spinner-small"></div>
+            <span>Loading AI model...</span>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.0/dist/ort.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
