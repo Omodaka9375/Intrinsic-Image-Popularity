@@ -13,7 +13,7 @@ class ImagePopularityPredictor {
         // Get DOM elements
         this.uploadArea = document.getElementById('uploadArea');
         this.fileInput = document.getElementById('fileInput');
-        this.fileInfo = document.getElementById('fileInfo');
+        this.uploadSection = document.querySelector('.upload-section')
         this.fileName = document.getElementById('fileName');
         this.fileSize = document.getElementById('fileSize');
         this.removeFileBtn = document.getElementById('removeFile');
@@ -28,7 +28,10 @@ class ImagePopularityPredictor {
         this.scoreTitle = document.getElementById('scoreTitle');
         this.scoreDescription = document.getElementById('scoreDescription');
         this.resetBtn = document.getElementById('resetBtn');
+        this.shareBtn = document.getElementById('shareBtn');
         this.modelStatus = document.getElementById('modelStatus');
+        this.scoreMeter = document.getElementById('scoreMeter');
+        this.scoreRing = document.getElementById('scoreRing');
     }
 
     attachEventListeners() {
@@ -53,48 +56,32 @@ class ImagePopularityPredictor {
         // Analyze button
         this.analyzeBtn.addEventListener('click', this.analyzeImage.bind(this));
         
-        // Reset button
+// Reset button
         this.resetBtn.addEventListener('click', this.reset.bind(this));
+        
+        // Share button
+        this.shareBtn.addEventListener('click', this.shareResults.bind(this));
     }
 
     async loadModel() {
         try {
-            console.log('Loading ONNX model...');
+console.log('Loading ONNX model...');
             // Set up ONNX Runtime
-            ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.0/dist/';
+            ort.env.wasm.wasmPaths = './wasm/';
             
             // Load the model
             this.session = await ort.InferenceSession.create('model.onnx');
             this.isModelLoaded = true;
             
             console.log('Model loaded successfully');
-            this.updateModelStatus('Model ready', true);
-        } catch (error) {
+            this.updateModelStatus('Model Ready', true);
+} catch (error) {
             console.error('Failed to load model:', error);
-            this.updateModelStatus('Model failed to load', false);
+            this.updateModelStatus('❌ Model Load Failed', false);
             this.showError('Failed to load the AI model. Please refresh the page and try again.');
         }
     }
 
-    updateModelStatus(message, isReady) {
-        const statusContent = this.modelStatus.querySelector('.status-content');
-        const spinner = statusContent.querySelector('.spinner-small');
-        const text = statusContent.querySelector('span');
-        
-        if (isReady) {
-            spinner.style.display = 'none';
-            text.textContent = message;
-            text.style.color = '#10b981';
-            
-            // Hide status after 2 seconds
-            setTimeout(() => {
-                this.modelStatus.classList.add('hidden');
-            }, 2000);
-        } else {
-            text.textContent = message;
-            text.style.color = '#ef4444';
-        }
-    }
 
     handleDragOver(e) {
         e.preventDefault();
@@ -137,17 +124,8 @@ class ImagePopularityPredictor {
         }
 
         this.currentImageFile = file;
-        this.displayFileInfo(file);
-        this.displayImagePreview(file);
-    }
-
-    displayFileInfo(file) {
-        this.fileName.textContent = file.name;
-        this.fileSize.textContent = this.formatFileSize(file.size);
         
-        this.uploadArea.style.display = 'none';
-        this.fileInfo.style.display = 'flex';
-        this.fileInfo.classList.add('fade-in');
+        this.displayImagePreview(file);
     }
 
     displayImagePreview(file) {
@@ -175,7 +153,6 @@ class ImagePopularityPredictor {
         this.fileInput.value = '';
         
         this.uploadArea.style.display = 'block';
-        this.fileInfo.style.display = 'none';
         this.previewSection.style.display = 'none';
         this.analysisSection.style.display = 'none';
         this.resultsSection.style.display = 'none';
@@ -188,19 +165,21 @@ class ImagePopularityPredictor {
         }
 
         try {
-            // Show loading
+// Show loading
+            this.uploadArea.style.display = 'none';
             this.analyzeBtn.style.display = 'none';
+            this.uploadSection.style.display = 'none';
             this.loading.style.display = 'flex';
-            this.updateLoadingMessage('Preprocessing image...');
+            this.updateLoadingMessage('Preprocessing image...', '🔄 Preparing your image for analysis');
 
             // Preprocess image
             const imageData = await this.preprocessImage(this.currentImageFile);
             
-            this.updateLoadingMessage('Running AI analysis...');
+this.updateLoadingMessage('Running AI analysis...', '🧠 Our AI is analyzing your image');
             // Run inference
             const score = await this.runInference(imageData);
             
-            this.updateLoadingMessage('Analyzing image characteristics...');
+this.updateLoadingMessage('Analyzing image characteristics...', '📊 Calculating detailed insights');
             // Display results
             await this.displayResults(score);
             
@@ -288,30 +267,32 @@ class ImagePopularityPredictor {
         
         // Determine score category and description
         let category, description, color;
-        if (score >= 4.0) {
-            category = 'Excellent';
-            description = 'This image has exceptional viral potential! It contains highly engaging visual elements.';
-            color = '#10b981';
-        } else if (score >= 2.0) {
-            category = 'Good';
-            description = 'This image shows good potential for engagement with appealing visual content.';
-            color = '#3b82f6';
-        } else if (score >= 0.0) {
-            category = 'Fair';
-            description = 'This image has moderate appeal and may receive average engagement.';
-            color = '#f59e0b';
+if (score >= 4.5) {
+            category = '🔥 Viral Ready';
+            description = 'This image is primed for viral success! It has multiple elements that drive high engagement on social media.';
+            color = '#10B981';
+        } else if (score >= 3.0) {
+            category = '✨ High Potential';
+            description = 'This image has strong appeal and should perform well with your audience. Great choice!';
+            color = '#06B6D4';
+        } else if (score >= 1.5) {
+            category = '📈 Room to Grow';
+            description = 'This image has some appealing qualities but could be optimized for better social media performance.';
+            color = '#F59E0B';
         } else {
-            category = 'Poor';
-            description = 'This image may struggle to gain traction on social media platforms.';
-            color = '#ef4444';
+            category = '🔧 Needs Work';
+            description = 'This image could benefit from some adjustments to increase its social media appeal.';
+            color = '#EF4444';
         }
         
         this.scoreTitle.textContent = category;
         this.scoreDescription.textContent = description;
         
-        // Update score circle color
-        const scoreCircle = document.querySelector('.score-circle');
-        scoreCircle.style.background = `linear-gradient(135deg, ${color}, #06b6d4)`;
+// Animate score ring
+        this.animateScoreRing(score);
+        
+        // Update score meter
+        this.updateScoreMeter(score);
         
         // Highlight the appropriate score range
         this.highlightScoreRange(score);
@@ -320,22 +301,27 @@ class ImagePopularityPredictor {
         this.updateInsights(score, imageAnalysis);
         
         // Show results section
-        this.resultsSection.style.display = 'block';
+this.resultsSection.style.display = 'block';
         this.resultsSection.classList.add('slide-up');
+        
+        // Scroll to results
+        setTimeout(() => {
+            this.resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
     }
 
-    highlightScoreRange(score) {
+highlightScoreRange(score) {
         const ranges = document.querySelectorAll('.score-range');
         ranges.forEach(range => range.style.opacity = '0.6');
         
-        if (score >= 4.0) {
-            ranges[0].style.opacity = '1'; // Excellent
-        } else if (score >= 2.0) {
-            ranges[1].style.opacity = '1'; // Good
-        } else if (score >= 0.0) {
-            ranges[2].style.opacity = '1'; // Fair
+        if (score >= 4.5) {
+            ranges[0].style.opacity = '1'; // Viral Ready
+        } else if (score >= 3.0) {
+            ranges[1].style.opacity = '1'; // High Potential
+        } else if (score >= 1.5) {
+            ranges[2].style.opacity = '1'; // Room to Grow
         } else {
-            ranges[3].style.opacity = '1'; // Poor
+            ranges[3].style.opacity = '1'; // Needs Work
         }
     }
 
@@ -370,9 +356,10 @@ class ImagePopularityPredictor {
         });
     }
 
-    analyzeColors(data, width, height) {
+analyzeColors(data, width, height) {
         let totalR = 0, totalG = 0, totalB = 0;
         let brightPixels = 0, darkPixels = 0;
+        let totalSaturation = 0, totalVibrancy = 0;
         const pixelCount = width * height;
         
         for (let i = 0; i < data.length; i += 4) {
@@ -384,27 +371,53 @@ class ImagePopularityPredictor {
             totalG += g;
             totalB += b;
             
+            // Calculate brightness
             const brightness = (r + g + b) / 3;
             if (brightness > 200) brightPixels++;
             if (brightness < 50) darkPixels++;
+            
+            // Calculate saturation (difference between max and min RGB values)
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            const saturation = max > 0 ? (max - min) / max : 0;
+            totalSaturation += saturation;
+            
+            // Calculate vibrancy (saturation weighted by luminance)
+            const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+            const vibrancy = saturation * (luminance / 255);
+            totalVibrancy += vibrancy;
         }
         
-        const avgR = Math.round(totalR / pixelCount);
+const avgR = Math.round(totalR / pixelCount);
         const avgG = Math.round(totalG / pixelCount);
         const avgB = Math.round(totalB / pixelCount);
         const avgBrightness = Math.round((avgR + avgG + avgB) / 3);
+        const avgSaturation = (totalSaturation / pixelCount * 100).toFixed(1);
+        const avgVibrancy = (totalVibrancy / pixelCount * 100).toFixed(1);
         
-        // Determine dominant color
+// Determine dominant color with better logic
         let dominantColor = 'Neutral';
-        if (avgR > avgG && avgR > avgB) dominantColor = 'Warm (Red-toned)';
-        else if (avgG > avgR && avgG > avgB) dominantColor = 'Natural (Green-toned)';
-        else if (avgB > avgR && avgB > avgG) dominantColor = 'Cool (Blue-toned)';
+        const colorDifference = 15; // Minimum difference to be considered dominant
+        
+        if (avgR > avgG + colorDifference && avgR > avgB + colorDifference) {
+            dominantColor = 'Warm (Red-toned)';
+        } else if (avgG > avgR + colorDifference && avgG > avgB + colorDifference) {
+            dominantColor = 'Natural (Green-toned)';
+        } else if (avgB > avgR + colorDifference && avgB > avgG + colorDifference) {
+            dominantColor = 'Cool (Blue-toned)';
+        } else if (Math.abs(avgR - avgG) < colorDifference && Math.abs(avgR - avgB) < colorDifference) {
+            dominantColor = 'Balanced';
+        }
+        
+console.log(`Color analysis: brightness=${avgBrightness}, saturation=${avgSaturation}%, vibrancy=${avgVibrancy}%, dominant=${dominantColor}`);
         
         return {
             averageBrightness: avgBrightness,
             dominantColor,
             brightPixelRatio: (brightPixels / pixelCount * 100).toFixed(1),
             darkPixelRatio: (darkPixels / pixelCount * 100).toFixed(1),
+            saturation: avgSaturation,
+            vibrancy: avgVibrancy,
             colorBalance: { r: avgR, g: avgG, b: avgB }
         };
     }
@@ -422,14 +435,14 @@ class ImagePopularityPredictor {
             orientation = 'Vertical';
         }
         
-        // Check if it matches social media optimal ratios
+// Check if it matches social media optimal ratios
         let socialOptimized = false;
         const commonRatios = {
             'Instagram Square': 1.0,
-            'Instagram Portrait': 0.8,
-            'Instagram Story': 0.56,
-            'Facebook Cover': 2.7,
-            'Twitter Header': 3.0
+            'Instagram Portrait': 0.8, // 4:5 ratio
+            'Instagram Story': 1.78, // 9:16 ratio (not 0.56)
+            'Facebook Cover': 2.7, // 2.7:1 ratio
+            'Twitter Header': 3.0 // 3:1 ratio
         };
         
         for (const [platform, ratio] of Object.entries(commonRatios)) {
@@ -439,12 +452,27 @@ class ImagePopularityPredictor {
             }
         }
         
+// Better resolution analysis considering total pixels and pixel density
+        const totalPixels = width * height;
+        let resolution = 'Low';
+        
+        if (totalPixels >= 2073600) { // 1920x1080 or equivalent
+            resolution = 'High';
+        } else if (totalPixels >= 921600) { // 1280x720 or equivalent
+            resolution = 'Medium';
+        } else if (totalPixels >= 307200) { // 640x480 or equivalent
+            resolution = 'Low';
+        } else {
+            resolution = 'Very Low';
+        }
+        
         return {
             format,
             orientation,
             aspectRatio,
             socialOptimized,
-            resolution: width >= 1080 ? 'High' : width >= 720 ? 'Medium' : 'Low'
+            resolution,
+            totalPixels
         };
     }
 
@@ -457,15 +485,27 @@ class ImagePopularityPredictor {
             histogram[brightness]++;
         }
         
-        // Find peaks in histogram
+// Analyze lighting distribution with better thresholds
         const shadows = histogram.slice(0, 85).reduce((a, b) => a + b, 0) / pixelCount;
         const midtones = histogram.slice(85, 170).reduce((a, b) => a + b, 0) / pixelCount;
         const highlights = histogram.slice(170, 256).reduce((a, b) => a + b, 0) / pixelCount;
         
+        console.log(`Lighting analysis: shadows=${(shadows*100).toFixed(1)}%, midtones=${(midtones*100).toFixed(1)}%, highlights=${(highlights*100).toFixed(1)}%`);
+        
         let lightingType = 'Balanced';
-        if (shadows > 0.4) lightingType = 'Dramatic/Moody';
-        else if (highlights > 0.3) lightingType = 'Bright/Airy';
-        else if (midtones > 0.6) lightingType = 'Even/Soft';
+        
+        // More nuanced lighting classification
+        if (shadows > 0.5) {
+            lightingType = 'Dark/Moody';
+        } else if (highlights > 0.4) {
+            lightingType = 'Bright/Airy';
+        } else if (shadows > 0.35) {
+            lightingType = 'Dramatic/Contrasted';
+        } else if (midtones > 0.65) {
+            lightingType = 'Even/Soft';
+        } else {
+            lightingType = 'Balanced';
+        }
         
         return {
             type: lightingType,
@@ -475,27 +515,56 @@ class ImagePopularityPredictor {
         };
     }
 
-    analyzeSharpness(data, width, height) {
-        // Simple edge detection for sharpness estimation
-        let edgeStrength = 0;
-        const sampleSize = Math.min(10000, width * height); // Sample for performance
-        const step = Math.floor((width * height) / sampleSize);
+analyzeSharpness(data, width, height) {
+        // Improved sharpness detection using Laplacian-like edge detection
+        let totalVariance = 0;
+        let sampleCount = 0;
+        const step = 4; // Sample every pixel for better accuracy
         
-        for (let i = 0; i < data.length - width * 4; i += step * 4) {
-            const currentPixel = (data[i] + data[i + 1] + data[i + 2]) / 3;
-            const nextPixel = (data[i + width * 4] + data[i + width * 4 + 1] + data[i + width * 4 + 2]) / 3;
-            edgeStrength += Math.abs(currentPixel - nextPixel);
+        // Check both horizontal and vertical edges
+        for (let y = 1; y < height - 1; y++) {
+            for (let x = 1; x < width - 1; x += step) {
+                const idx = (y * width + x) * 4;
+                
+                // Get grayscale values for current pixel and neighbors
+                const center = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+                const left = (data[idx - 4] + data[idx - 3] + data[idx - 2]) / 3;
+                const right = (data[idx + 4] + data[idx + 5] + data[idx + 6]) / 3;
+                const top = (data[idx - width * 4] + data[idx - width * 4 + 1] + data[idx - width * 4 + 2]) / 3;
+                const bottom = (data[idx + width * 4] + data[idx + width * 4 + 1] + data[idx + width * 4 + 2]) / 3;
+                
+                // Calculate Laplacian-like operator (measures local variation)
+                const laplacian = Math.abs(4 * center - left - right - top - bottom);
+                totalVariance += laplacian;
+                sampleCount++;
+            }
         }
         
-        const avgEdgeStrength = edgeStrength / (sampleSize / step);
+const avgVariance = totalVariance / sampleCount;
         let sharpnessLevel = 'Medium';
+        let sharpnessScore = avgVariance;
         
-        if (avgEdgeStrength > 25) sharpnessLevel = 'High';
-        else if (avgEdgeStrength < 10) sharpnessLevel = 'Low';
+        // Debug logging
+        console.log(`Sharpness analysis: avgVariance = ${avgVariance.toFixed(2)}, samples = ${sampleCount}`);
+        
+        // More conservative thresholds based on actual edge detection
+        if (avgVariance > 15) {
+            sharpnessLevel = 'High';
+        } else if (avgVariance > 8) {
+            sharpnessLevel = 'Medium';
+        } else if (avgVariance > 3) {
+            sharpnessLevel = 'Low';
+        } else {
+            sharpnessLevel = 'Very Low';
+        }
+        
+        console.log(`Sharpness result: ${sharpnessLevel} (score: ${avgVariance.toFixed(2)})`);
+        
         
         return {
             level: sharpnessLevel,
-            edgeStrength: avgEdgeStrength.toFixed(1)
+            edgeStrength: avgVariance.toFixed(1),
+            score: sharpnessScore
         };
     }
 
@@ -534,33 +603,54 @@ class ImagePopularityPredictor {
             }
         }
         
-        // Analyze colors
+// Analyze colors and vibrancy
         if (analysis.colors.averageBrightness > 150 && score >= 2.0) {
             positives.push('Bright images tend to perform well on social media');
-        } else if (analysis.colors.averageBrightness < 80 && score < 2.0) {
+        } else if (analysis.colors.averageBrightness < 80) {
             improvements.push('Darker images may struggle for attention in social feeds');
         }
         
-        if (analysis.colors.dominantColor !== 'Neutral') {
+        // Analyze saturation and vibrancy
+        if (parseFloat(analysis.colors.saturation) > 40) {
+            positives.push('Rich, saturated colors create visual impact');
+        } else if (parseFloat(analysis.colors.saturation) < 15) {
+            improvements.push('More colorful/saturated images often perform better');
+        }
+        
+        if (parseFloat(analysis.colors.vibrancy) > 25) {
+            positives.push('Good color vibrancy makes the image pop');
+        }
+        
+        if (analysis.colors.dominantColor !== 'Neutral' && analysis.colors.dominantColor !== 'Balanced') {
             insights.push(`Color palette: ${analysis.colors.dominantColor}`);
+        } else if (analysis.colors.dominantColor === 'Balanced') {
+            positives.push('Well-balanced color composition');
         }
         
-        // Analyze sharpness
+// Analyze sharpness
         if (analysis.sharpness.level === 'High') {
-            positives.push('Sharp, crisp image quality');
+            positives.push('Sharp, crisp image quality enhances detail');
+        } else if (analysis.sharpness.level === 'Medium') {
+            insights.push(`Moderate sharpness - acceptable for most uses`);
         } else if (analysis.sharpness.level === 'Low') {
-            improvements.push('Sharper focus could improve visual appeal');
+            improvements.push('Image appears somewhat blurry - sharper focus would help');
+        } else if (analysis.sharpness.level === 'Very Low') {
+            improvements.push('Image is very blurry/pixelated - significant focus improvement needed');
         }
         
-        // Generate score-specific insights
+// Generate score-specific insights
         if (score >= 4.0) {
-            insights.push('🌟 This image has multiple viral elements working together!');
+            insights.push('🔥 This image is hitting all the right notes for viral content!');
+            insights.push('🎯 Perfect combination of visual appeal and engagement factors');
         } else if (score >= 2.0) {
-            insights.push('✨ This image has good engagement potential');
+            insights.push('✨ This image has strong elements that resonate with social media users');
+            insights.push('📱 Should perform well across different social platforms');
         } else if (score >= 0.0) {
-            insights.push('📈 Room for improvement to increase engagement');
+            insights.push('💡 Some adjustments could significantly boost this image\'s performance');
+            insights.push('🎨 Consider enhancing lighting, composition, or subject matter');
         } else {
-            insights.push('🔧 Several factors could be optimized for better performance');
+            insights.push('🔄 This image would benefit from several optimizations');
+            insights.push('💪 Don\'t worry - small changes can make a big difference!');
         }
         
         // Build the insights HTML
@@ -586,6 +676,14 @@ class ImagePopularityPredictor {
                     <div class="detail-item">
                         <span class="label">Sharpness:</span>
                         <span class="value">${analysis.sharpness.level}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Color Saturation:</span>
+                        <span class="value">${analysis.colors.saturation}%</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Vibrancy:</span>
+                        <span class="value">${analysis.colors.vibrancy}%</span>
                     </div>
                 </div>
             </div>`;
@@ -626,21 +724,121 @@ class ImagePopularityPredictor {
             html += `</ul></div>`;
         }
         
-        // Research-based tips
+// Platform-specific and general research-based tips
+        html += this.generatePlatformTips(analysis);
+        
         html += `
             <div class="detail-section research">
-                <h5><i class="fas fa-graduation-cap"></i> Research-Based Tips</h5>
+                <h5><i class="fas fa-graduation-cap"></i> General Research Tips</h5>
                 <ul class="insight-list">
-                    <li>Images with faces receive 38% more engagement</li>
+                    <li>Images with faces receive 38% more engagement across platforms</li>
                     <li>Bright, high-contrast images perform better in feeds</li>
-                    <li>Square and portrait formats optimize for mobile viewing</li>
                     <li>Visual storytelling increases emotional connection</li>
+                    <li>Consistent posting times improve reach and engagement</li>
                 </ul>
             </div>`;
         
         html += `</div>`;
         
-        insightsContent.innerHTML = html;
+insightsContent.innerHTML = html;
+    }
+    
+    generatePlatformTips(analysis) {
+        let html = '';
+        
+        // Check if image is optimized for any platform
+        if (analysis.composition.socialOptimized) {
+            const platform = analysis.composition.socialOptimized;
+            html += `
+                <div class="detail-section research">
+                    <h5><i class="fas fa-bullseye"></i> ${platform} Optimization</h5>
+                    <ul class="insight-list">
+                        ${this.getPlatformSpecificTips(platform)}
+                    </ul>
+                </div>`;
+        } else {
+            // Provide tips for the most suitable platforms based on aspect ratio
+            const aspectRatio = parseFloat(analysis.dimensions.aspectRatio);
+            html += `
+                <div class="detail-section research">
+                    <h5><i class="fas fa-mobile-alt"></i> Platform Recommendations</h5>
+                    <ul class="insight-list">
+                        ${this.getAspectRatioTips(aspectRatio, analysis.composition.format)}
+                    </ul>
+                </div>`;
+        }
+        
+        return html;
+    }
+    
+    getPlatformSpecificTips(platform) {
+        const tips = {
+            'Instagram Square': `
+                <li>📸 Perfect for Instagram feed posts - 1:1 ratio maximizes mobile visibility</li>
+                <li>🎯 Use eye-catching subjects in the center for better crop tolerance</li>
+                <li>📱 Consider carousel posts to tell a story with multiple 1:1 images</li>
+                <li>⏰ Post during peak hours: 11am-1pm and 7-9pm for best engagement</li>`,
+            'Instagram Portrait': `
+                <li>📱 Excellent for Instagram feed - 4:5 ratio takes up more screen space</li>
+                <li>👆 Portrait format encourages users to stop scrolling</li>
+                <li>🎨 Use the extra vertical space for text overlays or storytelling</li>
+                <li>📊 Portrait posts get 23% more engagement than landscape</li>`,
+            'Instagram Story': `
+                <li>📱 Optimized for Instagram Stories - 9:16 fills the entire screen</li>
+                <li>⏳ Stories have 24-hour visibility - perfect for time-sensitive content</li>
+                <li>🎯 Add interactive elements: polls, questions, stickers</li>
+                <li>📈 Stories are viewed by 500M+ users daily</li>`,
+            'Facebook Cover': `
+                <li>🖥️ Perfect for Facebook cover photos - displays well on all devices</li>
+                <li>📝 Avoid text in center area where profile photo overlaps</li>
+                <li>🎨 Use high-quality images as covers get significant visibility</li>
+                <li>🔄 Update covers regularly to keep profile fresh</li>`,
+            'Twitter Header': `
+                <li>🐦 Ideal for Twitter header - 3:1 ratio fits perfectly</li>
+                <li>📱 Ensure key elements are visible on mobile (center area)</li>
+                <li>🎯 Headers are first impression - use brand colors/messaging</li>
+                <li>📊 Profiles with headers get 3x more followers</li>`
+        };
+        
+        return tips[platform] || '';
+    }
+    
+    getAspectRatioTips(aspectRatio, format) {
+        let tips = '';
+        
+        if (aspectRatio > 2.5) {
+            // Wide landscape - good for banners
+            tips += `
+                <li>🖥️ Great for website banners, LinkedIn covers, and YouTube thumbnails</li>
+                <li>📊 Consider Facebook cover (2.7:1) or Twitter header (3:1) optimization</li>`;
+        } else if (aspectRatio > 1.5) {
+            // Standard landscape
+            tips += `
+                <li>📺 Suitable for YouTube thumbnails and LinkedIn posts</li>
+                <li>🖥️ Works well for desktop-focused platforms</li>`;
+        } else if (aspectRatio > 1.1) {
+            // Slightly landscape - close to square
+            tips += `
+                <li>📱 Consider cropping to 1:1 square for Instagram feed</li>
+                <li>🎯 Close to optimal social media ratios</li>`;
+        } else if (aspectRatio > 0.9) {
+            // Square-ish
+            tips += `
+                <li>📸 Perfect for Instagram posts and Facebook feed</li>
+                <li>📱 Square format works across most social platforms</li>`;
+        } else if (aspectRatio > 0.6) {
+            // Portrait
+            tips += `
+                <li>📱 Ideal for Instagram feed posts and Pinterest pins</li>
+                <li>📊 Portrait images get higher engagement on mobile</li>`;
+        } else {
+            // Tall portrait - story format
+            tips += `
+                <li>📱 Perfect for Instagram/Facebook Stories and TikTok</li>
+                <li>🎬 Vertical video format is trending across platforms</li>`;
+        }
+        
+        return tips;
     }
 
     reset() {
@@ -649,11 +847,11 @@ class ImagePopularityPredictor {
         
         // Hide all sections except upload
         this.uploadArea.style.display = 'block';
-        this.fileInfo.style.display = 'none';
         this.previewSection.style.display = 'none';
         this.analysisSection.style.display = 'none';
         this.resultsSection.style.display = 'none';
-        this.analyzeBtn.style.display = 'block';
+        this.analyzeBtn.style.display = 'inline';
+        this.uploadSection.style.display = 'block';
         this.loading.style.display = 'none';
         
         // Reset score range highlighting
@@ -669,20 +867,379 @@ class ImagePopularityPredictor {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 
-    updateLoadingMessage(message) {
-        const loadingText = this.loading.querySelector('p');
-        if (loadingText) {
-            loadingText.textContent = message;
+
+    updateModelStatus(message, isReady) {
+        const statusText = this.modelStatus.querySelector('.status-text');
+        const statusSpinner = this.modelStatus.querySelector('.status-spinner');
+        const statusStrong = statusText.querySelector('strong');
+        const statusSpan = statusText.querySelector('span');
+        
+        if (isReady) {
+            statusSpinner.style.display = 'none';
+            statusStrong.textContent = message;
+            statusSpan.textContent = 'Ready to analyze images';
+            //statusStrong.style.color = '#10B981';
+            
+            // Hide status after 3 seconds
+            setTimeout(() => {
+                this.modelStatus.classList.add('hidden');
+            }, 3000);
+        } else {
+            statusStrong.textContent = message;
+            statusSpan.textContent = 'Please refresh the page';
+            statusStrong.style.color = '#EF4444';
         }
     }
 
+    updateLoadingMessage(title, description) {
+        const loadingTitle = document.getElementById('loadingTitle');
+        const loadingDescription = document.getElementById('loadingDescription');
+        if (loadingTitle && loadingDescription) {
+            loadingTitle.textContent = title;
+            loadingDescription.textContent = description;
+        }
+    }
+
+animateScoreRing(score) {
+        if (!this.scoreRing) return;
+        
+        // Calculate percentage for score range 0-6
+        const minScore = 0;
+        const maxScore = 6;
+        const normalizedScore = Math.max(0, Math.min(1, (score - minScore) / (maxScore - minScore)));
+        
+        // Calculate stroke-dashoffset for the ring (377 is circumference: 2 * PI * 60)
+        const circumference = 377;
+        const offset = circumference - (normalizedScore * circumference);
+        
+// Get color based on actual score (matching score interpretation ranges)
+        const color = this.getScoreColor(score);
+        
+        console.log(`Score: ${score}, Normalized: ${normalizedScore.toFixed(3)}, Color: ${color}`);
+        
+// Update the gradient to match score interpretation ranges (reversed for circle)
+        const scoreGradient = document.getElementById('scoreGradient');
+        if (scoreGradient) {
+            // Use exact colors from score ranges, reversed for clockwise circle
+            scoreGradient.innerHTML = `
+                <stop offset="0%" stop-color="#166534"/>
+                <stop offset="25%" stop-color="#1d4ed8"/>
+                <stop offset="50%" stop-color="#92400e"/>
+                <stop offset="100%" stop-color="#dc2626"/>
+            `;
+        }
+        
+        // Animate the ring
+        setTimeout(() => {
+            this.scoreRing.style.strokeDashoffset = offset;
+            this.scoreRing.style.transition = 'stroke-dashoffset 2s ease-out';
+        }, 500);
+    }
+    
+getScoreColor(score) {
+        // Use exact colors from score interpretation ranges
+        // Needs Work (0.0-1.5): Red, Room to Grow (1.5-3.0): Orange, High Potential (3.0-4.5): Blue, Viral Ready (4.5-6.0): Green
+        
+        if (score >= 4.5) {
+            return '#166534'; // Viral Ready - Green (from CSS .score-range.excellent)
+        } else if (score >= 3.0) {
+            return '#1d4ed8'; // High Potential - Blue (from CSS .score-range.good)
+        } else if (score >= 1.5) {
+            return '#92400e'; // Room to Grow - Orange/Brown (from CSS .score-range.fair)
+        } else {
+            return '#dc2626'; // Needs Work - Red (from CSS .score-range.poor)
+        }
+    }
+    
+    interpolateColor(color1, color2, factor) {
+        // Convert hex to RGB
+        const c1 = this.hexToRgb(color1);
+        const c2 = this.hexToRgb(color2);
+        
+        // Interpolate
+        const r = Math.round(c1.r + (c2.r - c1.r) * factor);
+        const g = Math.round(c1.g + (c2.g - c1.g) * factor);
+        const b = Math.round(c1.b + (c2.b - c1.b) * factor);
+        
+        return this.rgbToHex(r, g, b);
+    }
+    
+    hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : null;
+    }
+    
+rgbToHex(r, g, b) {
+        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+    
+    lightenColor(hex, percent) {
+        // Convert hex to RGB
+        const rgb = this.hexToRgb(hex);
+        if (!rgb) return hex;
+        
+        // Lighten each component
+        const r = Math.min(255, Math.round(rgb.r + (255 - rgb.r) * (percent / 100)));
+        const g = Math.min(255, Math.round(rgb.g + (255 - rgb.g) * (percent / 100)));
+        const b = Math.min(255, Math.round(rgb.b + (255 - rgb.b) * (percent / 100)));
+        
+        return this.rgbToHex(r, g, b);
+    }
+
+updateScoreMeter(score) {
+        if (!this.scoreMeter) return;
+        
+        // Calculate percentage for score range 0-6
+        const minScore = 0;
+        const maxScore = 6;
+        const percentage = Math.max(0, Math.min(100, ((score - minScore) / (maxScore - minScore)) * 100));
+        
+        // Animate the meter
+        setTimeout(() => {
+            this.scoreMeter.style.width = `${percentage}%`;
+        }, 800);
+    }
+
+async shareResults() {
+        // Show sharing options modal
+        this.showSharingModal();
+    }
+    
+showSharingModal() {
+        const scoreValue = this.scoreValue.textContent;
+        const scoreTitle = this.scoreTitle.textContent;
+        
+        // Get score-based colors
+        const score = parseFloat(scoreValue);
+        const scoreColor = this.getScoreColor(score);
+        const lighterColor = this.lightenColor(scoreColor, 30);
+        
+        // Create modal overlay
+        const modal = document.createElement('div');
+        modal.className = 'share-modal-overlay';
+        modal.innerHTML = `
+            <div class="share-modal">
+                <div class="share-header">
+                    <h3><i class="fas fa-share-alt"></i> Share Your PopScore</h3>
+                    <button class="modal-close" onclick="this.parentElement.parentElement.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="share-preview">
+                    <div class="preview-card" style="background: linear-gradient(135deg, ${lighterColor}, ${scoreColor})">
+                        <div class="preview-score">
+                            <div class="preview-circle">
+                                <span class="preview-value">${scoreValue}</span>
+                            </div>
+                            <div class="preview-title">${scoreTitle}</div>
+                        </div>
+                        <p class="preview-text">I just discovered my image's viral potential with PopScore AI! 🔥</p>
+                    </div>
+                </div>
+                
+                <div class="share-platforms">
+                    <h4>Share on Social Media</h4>
+                    <div class="platform-buttons">
+                        <button class="platform-btn twitter" onclick="popScore.shareToTwitter('${scoreValue}', '${scoreTitle}')">
+                            <i class="fab fa-twitter"></i>
+                            <span>Twitter</span>
+                        </button>
+                        <button class="platform-btn facebook" onclick="popScore.shareToFacebook('${scoreValue}', '${scoreTitle}')">
+                            <i class="fab fa-facebook-f"></i>
+                            <span>Facebook</span>
+                        </button>
+                        <button class="platform-btn linkedin" onclick="popScore.shareToLinkedIn('${scoreValue}', '${scoreTitle}')">
+                            <i class="fab fa-linkedin-in"></i>
+                            <span>LinkedIn</span>
+                        </button>
+                        <button class="platform-btn instagram" onclick="popScore.copyForInstagram('${scoreValue}', '${scoreTitle}')">
+                            <i class="fab fa-instagram"></i>
+                            <span>Instagram</span>
+                        </button>
+                    </div>
+                    
+                    <div class="share-options">
+                        <button class="share-option-btn" onclick="popScore.copyShareText('${scoreValue}', '${scoreTitle}')">
+                            <i class="fas fa-copy"></i>
+                            Copy Share Text
+                        </button>
+                        <button class="share-option-btn" onclick="popScore.downloadResultCard('${scoreValue}', '${scoreTitle}')">
+                            <i class="fas fa-download"></i>
+                            Download Result Card
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+document.body.appendChild(modal);
+        modal.classList.add('show');
+    }
+    
+    shareToTwitter(scoreValue, scoreTitle) {
+        const text = `🔥 Just got a "${scoreTitle}" rating of ${scoreValue} on PopScore AI! 📸✨\n\nDiscover your image's viral potential with AI-powered analysis!\n\n👉 Try it yourself:`;
+        const url = window.location.href;
+        const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+        window.open(twitterUrl, '_blank', 'width=600,height=400');
+        document.querySelector('.share-modal-overlay').remove();
+    }
+    
+    shareToFacebook(scoreValue, scoreTitle) {
+        const url = window.location.href;
+        const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(`I just discovered my image's viral potential! Got a "${scoreTitle}" rating of ${scoreValue} with PopScore AI \ud83d\udd25\ud83d\udcf8 Try analyzing your images too!`)}`;
+        window.open(facebookUrl, '_blank', 'width=600,height=400');
+        document.querySelector('.share-modal-overlay').remove();
+    }
+    
+    shareToLinkedIn(scoreValue, scoreTitle) {
+        const text = `Fascinating! I just analyzed my image's social media potential with PopScore AI and received a "${scoreTitle}" rating of ${scoreValue}. \n\nThe AI-powered tool analyzes visual content to predict engagement potential - perfect for marketers, creators, and anyone looking to optimize their social media presence. \n\nWorth checking out if you're serious about visual content strategy!`;
+        const url = window.location.href;
+        const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}&summary=${encodeURIComponent(text)}`;
+        window.open(linkedInUrl, '_blank', 'width=600,height=400');
+        document.querySelector('.share-modal-overlay').remove();
+    }
+    
+    copyForInstagram(scoreValue, scoreTitle) {
+        const text = `🔥 PopScore Results: ${scoreTitle} (${scoreValue})\n\n🎨 Just discovered my image's viral potential with AI! \n\n🤖 PopScore analyzes your photos and predicts how well they'll perform on social media\n\n✨ Features:\n• AI-powered visual analysis\n• Instant engagement predictions\n• Detailed insights & tips\n• Privacy-focused (runs in browser)\n\n👉 Try it yourself! Link in my bio or search "PopScore AI"\n\n#PopScore #AI #SocialMedia #ContentCreator #Photography #ViralContent #MarketingTools`;
+        
+        navigator.clipboard.writeText(text).then(() => {
+            this.showToast('📸 Instagram caption copied! Paste it when you post your image.');
+        });
+        document.querySelector('.share-modal-overlay').remove();
+    }
+    
+    copyShareText(scoreValue, scoreTitle) {
+        const text = `🔥 I just analyzed my image with PopScore AI and got a "${scoreTitle}" rating of ${scoreValue}!\n\n🤖 PopScore uses AI to predict how well your images will perform on social media. It's like having a crystal ball for viral content!\n\n✨ Try it yourself: ${window.location.href}\n\n#PopScore #AI #SocialMedia #ViralContent`;
+        
+        navigator.clipboard.writeText(text).then(() => {
+            this.showToast('📋 Share text copied to clipboard!');
+        });
+        document.querySelector('.share-modal-overlay').remove();
+    }
+    
+downloadResultCard(scoreValue, scoreTitle) {
+        // Create a downloadable result card image
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size
+        canvas.width = 800;
+        canvas.height = 600;
+        
+// Get the score-based color
+        const score = parseFloat(scoreValue);
+        const scoreColor = this.getScoreColor(score);
+        
+        console.log(`Result card - Score: ${score}, Color: ${scoreColor}, Title: ${scoreTitle}`);
+        
+        // Create a gradient using the score color
+        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        // Lighter version of the score color for gradient start
+        const lighterColor = this.lightenColor(scoreColor, 20);
+        gradient.addColorStop(0, lighterColor);
+        gradient.addColorStop(1, scoreColor);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Add pattern overlay
+        ctx.globalAlpha = 0.1;
+        for (let i = 0; i < canvas.width; i += 60) {
+            for (let j = 0; j < canvas.height; j += 60) {
+                ctx.beginPath();
+                ctx.arc(i + 30, j + 30, 2, 0, Math.PI * 2);
+                ctx.fillStyle = 'white';
+                ctx.fill();
+            }
+        }
+        ctx.globalAlpha = 1;
+        
+        // PopScore branding
+        ctx.font = 'bold 48px Inter, sans-serif';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText('🔥 PopScore', canvas.width / 2, 80);
+        
+// Score circle with matching color
+        ctx.beginPath();
+        ctx.arc(canvas.width / 2, 250, 80, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fill();
+        
+        // Add a subtle border with score color
+        ctx.beginPath();
+        ctx.arc(canvas.width / 2, 250, 80, 0, Math.PI * 2);
+        ctx.strokeStyle = scoreColor;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        
+        // Score value
+        ctx.font = 'bold 64px Inter, sans-serif';
+        ctx.fillStyle = '#2d3436';
+        ctx.fillText(scoreValue, canvas.width / 2, 270);
+        
+        // Score title
+        ctx.font = 'bold 36px Inter, sans-serif';
+        ctx.fillStyle = 'white';
+        ctx.fillText(scoreTitle, canvas.width / 2, 380);
+        
+        // Description
+        ctx.font = '24px Inter, sans-serif';
+        ctx.fillText('AI-Powered Social Media Image Analysis', canvas.width / 2, 420);
+        
+        // Call to action
+        ctx.font = '20px Inter, sans-serif';
+        ctx.fillText('Try PopScore yourself!', canvas.width / 2, 500);
+        ctx.fillText(window.location.origin, canvas.width / 2, 530);
+        
+        // Download the image
+        const link = document.createElement('a');
+        link.download = `PopScore-${scoreValue}-${scoreTitle.replace(/[^a-z0-9]/gi, '')}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+        
+        document.querySelector('.share-modal-overlay').remove();
+        this.showToast('💾 Result card downloaded! Share it on your social media.');
+    }
+
+    showToast(message) {
+        // Create toast notification
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 10000;
+            backdrop-filter: blur(10px);
+            animation: slideDown 0.3s ease-out;
+        `;
+        toast.textContent = message;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    }
+
     showError(message) {
-        // Simple error display - in production, you might want a more sophisticated error UI
-        alert(message);
+        this.showToast(`⚠️ ${message}`);
     }
 }
 
 // Initialize the application when DOM is loaded
+let popScore;
 document.addEventListener('DOMContentLoaded', () => {
-    new ImagePopularityPredictor();
+    popScore = new ImagePopularityPredictor();
 });
