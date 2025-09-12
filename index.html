@@ -42,7 +42,7 @@
                             <i class="fas fa-images"></i>
                         </div>
                         <h3>Drop your image here</h3>
-                        <p>or <span class="browse-btn">click to upload</span></p>
+                        <p style="color:whitesmoke;">or <span class="browse-btn">click to upload</span></p>
                         <input type="file" id="fileInput" accept="image/*" hidden>
                     </div>
                 </div>
@@ -78,7 +78,7 @@
                 <div class="analyze-container">
                     <button class="analyze-btn" id="analyzeBtn">
                         <i class="fas fa-sparkles"></i>
-                        <span>Get My PopScore</span>
+                        <span>What's my PopScore</span>
                         <div class="btn-glow"></div>
                     </button>
                     <p class="analyze-hint">✨ AI will analyze colors, composition, lighting, and more</p>
@@ -191,27 +191,38 @@
 
         <footer>
             <div class="footer-content">
-                <div class="footer-brand">
-                    <div class="footer-logo">
-                        <i class="fas fa-fire"></i>
-                        <span>PopScore</span>
+                <div class="footer-main">
+                    <div class="footer-brand">
+                        <div class="footer-logo">
+                            <i class="fas fa-fire"></i>
+                            <span>PopScore</span>
+                        </div>
+                        <p>AI-powered social media image analysis</p>
                     </div>
-                    <p>AI-powered social media image analysis</p>
+                    
+                    <div class="footer-links">
+                        <!-- <div class="footer-section">
+                            <h4>Research</h4>
+                            <p>Based on <em><a href="1907.01985.pdf" target="_blank">"Intrinsic Image Popularity Assessment"</a></em> by Ding et al.</p>
+                        </div> -->
+                        <div class="footer-section">
+                            <h4>Features</h4>
+                            <ul>
+                                <li>✨ Instant image analysis</li>
+                                <li>📊 Detailed insights</li>
+                                <li>🔒 Privacy-focused</li>
+                                <li>📱 Mobile optimized</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
-                <div class="footer-links">
-                    <div class="footer-section">
-                        <h4>Research</h4>
-                        <p>Based on <em><a href="1907.01985.pdf" target="_blank">"Intrinsic Image Popularity Assessment"</a></em> by Ding et al.</p>
-                        <p>Model trained on 2.5M Instagram pairs • 76.65% accuracy</p>
+                
+                <div class="footer-bottom">
+                    <div class="footer-copyright">
+                        <p>&copy; 2025 PopScore. All rights reserved.</p>
                     </div>
-                    <div class="footer-section">
-                        <h4>Features</h4>
-                        <ul>
-                            <li>✨ Instant image analysis</li>
-                            <li>📊 Detailed insights</li>
-                            <li>🔒 Privacy-focused</li>
-                            <li>📱 Mobile optimized</li>
-                        </ul>
+                    <div class="footer-creator">
+                        <p>Made with <i class="fas fa-heart"></i> by <a href="https://omodaka9375.github.io/portfolio/" target="_blank" rel="noopener noreferrer">Omodaka</a></p>
                     </div>
                 </div>
             </div>
@@ -221,9 +232,6 @@
     <!-- Model Loading Status -->
     <div class="model-status" id="modelStatus">
         <div class="status-content">
-            <div class="status-icon">
-                <i class="fas fa-brain"></i>
-            </div>
             <div class="status-text">
                 <strong>AI Model Loading...</strong>
                 <span>Preparing PopScore engine</span>
