@@ -101,15 +101,15 @@ class ImagePopularityPredictor {
             
             if (modelData) {
                 console.log('Loading model from cache...');
-                this.updateModelStatus('Loading from Cache...', false, 'Using cached model for faster loading');
+                this.updateModelStatus('Loading from Cache', false, 'Using cached model for faster loading');
                 
                 // Load model from cached data
                 this.session = await ort.InferenceSession.create(modelData);
             } else {
-                console.log('Downloading model for first time...');
-                this.updateModelStatus('Downloading AI Model...', false, 'First-time setup - downloading model (~91MB)');
+                console.log('Loading model for first time...');
+                this.updateModelStatus('Loading AI Model', false, 'First-time setup - loading model (~80MB)');
                 
-                // Download and cache the model
+                // Fetch and cache the model
                 const response = await fetch(this.MODEL_URL);
                 if (!response.ok) {
                     throw new Error(`Failed to download model: ${response.status}`);
@@ -132,9 +132,9 @@ class ImagePopularityPredictor {
                     // Update progress
                     const progress = totalSize > 0 ? (downloadedSize / totalSize * 100).toFixed(0) : '...';
                     this.updateModelStatus(
-                        'Downloading AI Model...', 
+                        'Loading AI Model', 
                         false, 
-                        `Downloaded ${this.formatBytes(downloadedSize)}${totalSize > 0 ? ` of ${this.formatBytes(totalSize)} (${progress}%)` : ''}`
+                        `Loaded ${this.formatBytes(downloadedSize)}${totalSize > 0 ? ` of ${this.formatBytes(totalSize)} (${progress}%)` : ''}`
                     );
                 }
                 
@@ -150,11 +150,11 @@ class ImagePopularityPredictor {
                 modelData = combinedArray.buffer;
                 
                 // Cache the model for future use
-                this.updateModelStatus('Caching Model...', false, 'Saving model for faster future loads');
+                this.updateModelStatus('Caching Model', false, 'Saving model for faster future loads');
                 await this.modelCache.cacheModel(modelData);
                 
                 // Load the model
-                this.updateModelStatus('Initializing AI Engine...', false, 'Preparing model for inference');
+                this.updateModelStatus('Initializing AI Engine', false, 'Preparing model for inference');
                 this.session = await ort.InferenceSession.create(modelData);
             }
             

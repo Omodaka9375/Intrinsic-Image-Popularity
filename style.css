@@ -1107,7 +1107,8 @@ main {
     box-shadow: var(--shadow-lg);
     z-index: 1000;
     transition: var(--transition-smooth);
-    max-width: 300px;
+    width: 320px;
+    min-width: 320px;
 }
 
 .model-status.hidden {
@@ -1140,20 +1141,27 @@ main {
 .status-text {
     flex: 1;
     min-width: 0;
+    overflow: hidden;
 }
 
 .status-text strong {
     display: block;
-
     font-size: 0.875rem;
     font-weight: 600;
     margin-bottom: 0.125rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .status-text span {
     display: block;
-
     font-size: 0.75rem;
+    color: var(--text-secondary);
+    line-height: 1.3;
+    word-wrap: break-word;
+    hyphens: auto;
 }
 
 .status-spinner {
@@ -1468,6 +1476,8 @@ footer {
         top: var(--space-sm);
         right: var(--space-sm);
         left: var(--space-sm);
+        width: auto;
+        min-width: auto;
         max-width: none;
     }
 }

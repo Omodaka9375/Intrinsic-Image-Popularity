@@ -1,7 +1,7 @@
 # PopScore
 **Intrinsic Image Popularity Assesment**
 
-This is a browser-based implementation of the Intrinsic Image Popularity Assessment model that predicts how popular an image would be on Instagram based solely on its visual content.
+This is a browser-based implementation of the Intrinsic Image Popularity Assessment model that predicts how popular an image would be on social media based on its visual content and appeal.
 
 ## Web App
 
@@ -116,4 +116,4 @@ web/
 
 
 ## Credits
-- **Original Research**: "Intrinsic Image Popularity Assessment" by Keyan Ding, Kede Ma, and Shiqi Wang
+- **Original Research**: ["Intrinsic Image Popularity Assessment"](1907.01985.pdf)  by Keyan Ding, Kede Ma, and Shiqi Wang
