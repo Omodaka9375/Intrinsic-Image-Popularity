@@ -999,7 +999,7 @@ insightsContent.innerHTML = html;
         if (isReady) {
             statusSpinner.style.display = 'none';
             statusStrong.textContent = message;
-            statusSpan.textContent = description || 'Ready to analyze';
+            statusSpan.textContent = description || 'Ready to analyze images!';
             statusStrong.style.color = 'black';
             
             // Hide status after 4 seconds
