@@ -6,6 +6,10 @@ This is a browser-based implementation of the Intrinsic Image Popularity Assessm
 ## Web App
 
 [PopScore.app](https://popscore.app)
+
+![Page](demo.png)
+
+
 ## Features
 
 - **Drag & Drop Interface**: Simply drag and drop images or browse files
@@ -20,7 +24,7 @@ This is a browser-based implementation of the Intrinsic Image Popularity Assessm
    - Drag and drop an image file onto the upload area, or
    - Click to browse for an image
 
-   ![Example](demo1.jpg)
+   ![Example Image](demo1.jpg)
 
 2. **Analyze**:
    - Click "What's my PopScore" button to run the prediction
