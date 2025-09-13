@@ -20,8 +20,11 @@ This is a browser-based implementation of the Intrinsic Image Popularity Assessm
    - Drag and drop an image file onto the upload area, or
    - Click to browse for an image
 
+   ![Example](demo1.jpg)
+
 2. **Analyze**:
    - Click "What's my PopScore" button to run the prediction
+   ![Example Result](demo2.jpg)
 
 3. **View Results**:
    - See your image's popularity score and category
