@@ -3,10 +3,17 @@ class ImagePopularityPredictor {
         this.session = null;
         this.isModelLoaded = false;
         this.currentImageFile = null;
+        this.modelCache = null;
+        this.isModelLoading = false;
+        
+        // Configuration
+        this.MODEL_URL = 'model.onnx';
+        this.MODEL_VERSION = '1.0.0'; // Update this when model changes
+        this.CACHE_NAME = 'popscore-model-cache';
         
         this.initializeElements();
         this.attachEventListeners();
-        this.loadModel();
+        this.initializeModelCache();
     }
 
     initializeElements() {
@@ -32,6 +39,9 @@ class ImagePopularityPredictor {
         this.modelStatus = document.getElementById('modelStatus');
         this.scoreMeter = document.getElementById('scoreMeter');
         this.scoreRing = document.getElementById('scoreRing');
+        
+        // Block upload area initially until model loads
+        this.setUploadAreaState(false);
     }
 
     attachEventListeners() {
@@ -63,21 +73,103 @@ class ImagePopularityPredictor {
         this.shareBtn.addEventListener('click', this.shareResults.bind(this));
     }
 
-    async loadModel() {
+    async initializeModelCache() {
         try {
-console.log('Loading ONNX model...');
+            this.modelCache = new ModelCacheManager(this.CACHE_NAME, this.MODEL_VERSION);
+            await this.loadModel();
+        } catch (error) {
+            console.error('Failed to initialize model cache:', error);
+            this.updateModelStatus('❌ Cache Initialization Failed', false);
+            this.setUploadAreaState(false);
+        }
+    }
+
+    async loadModel() {
+        if (this.isModelLoading) return;
+        
+        this.isModelLoading = true;
+        this.setUploadAreaState(false);
+        
+        try {
+            console.log('Initializing ONNX model loading...');
+            
             // Set up ONNX Runtime
             ort.env.wasm.wasmPaths = './wasm/';
             
-            // Load the model
-            this.session = await ort.InferenceSession.create('model.onnx');
+            // Check if model is cached
+            let modelData = await this.modelCache.getModel();
+            
+            if (modelData) {
+                console.log('Loading model from cache...');
+                this.updateModelStatus('Loading from Cache...', false, 'Using cached model for faster loading');
+                
+                // Load model from cached data
+                this.session = await ort.InferenceSession.create(modelData);
+            } else {
+                console.log('Downloading model for first time...');
+                this.updateModelStatus('Downloading AI Model...', false, 'First-time setup - downloading model (~91MB)');
+                
+                // Download and cache the model
+                const response = await fetch(this.MODEL_URL);
+                if (!response.ok) {
+                    throw new Error(`Failed to download model: ${response.status}`);
+                }
+                
+                const totalSize = parseInt(response.headers.get('content-length') || '0');
+                let downloadedSize = 0;
+                
+                // Create a readable stream to track download progress
+                const reader = response.body.getReader();
+                const chunks = [];
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    chunks.push(value);
+                    downloadedSize += value.length;
+                    
+                    // Update progress
+                    const progress = totalSize > 0 ? (downloadedSize / totalSize * 100).toFixed(0) : '...';
+                    this.updateModelStatus(
+                        'Downloading AI Model...', 
+                        false, 
+                        `Downloaded ${this.formatBytes(downloadedSize)}${totalSize > 0 ? ` of ${this.formatBytes(totalSize)} (${progress}%)` : ''}`
+                    );
+                }
+                
+                // Combine chunks into a single ArrayBuffer
+                const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+                const combinedArray = new Uint8Array(totalLength);
+                let offset = 0;
+                for (const chunk of chunks) {
+                    combinedArray.set(chunk, offset);
+                    offset += chunk.length;
+                }
+                
+                modelData = combinedArray.buffer;
+                
+                // Cache the model for future use
+                this.updateModelStatus('Caching Model...', false, 'Saving model for faster future loads');
+                await this.modelCache.cacheModel(modelData);
+                
+                // Load the model
+                this.updateModelStatus('Initializing AI Engine...', false, 'Preparing model for inference');
+                this.session = await ort.InferenceSession.create(modelData);
+            }
+            
             this.isModelLoaded = true;
+            this.isModelLoading = false;
             
             console.log('Model loaded successfully');
-            this.updateModelStatus('Model Ready', true);
-} catch (error) {
+            this.updateModelStatus('Model loaded', true);
+            this.setUploadAreaState(true);
+            
+        } catch (error) {
             console.error('Failed to load model:', error);
+            this.isModelLoading = false;
             this.updateModelStatus('❌ Model Load Failed', false);
+            this.setUploadAreaState(false);
             this.showError('Failed to load the AI model. Please refresh the page and try again.');
         }
     }
@@ -110,7 +202,29 @@ console.log('Loading ONNX model...');
         }
     }
 
+    setUploadAreaState(enabled) {
+        if (!this.uploadArea) return;
+        
+        if (enabled) {
+            this.uploadArea.classList.remove('disabled');
+            this.uploadArea.style.pointerEvents = 'auto';
+            this.uploadArea.style.opacity = '1';
+            if (this.fileInput) this.fileInput.disabled = false;
+        } else {
+            this.uploadArea.classList.add('disabled');
+            this.uploadArea.style.pointerEvents = 'none';
+            this.uploadArea.style.opacity = '0.6';
+            if (this.fileInput) this.fileInput.disabled = true;
+        }
+    }
+
     handleFile(file) {
+        // Check if model is loaded
+        if (!this.isModelLoaded) {
+            this.showError('Please wait for the AI model to finish loading.');
+            return;
+        }
+        
         // Validate file type
         if (!file.type.startsWith('image/')) {
             this.showError('Please select a valid image file.');
@@ -867,8 +981,16 @@ insightsContent.innerHTML = html;
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 
+    formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
 
-    updateModelStatus(message, isReady) {
+
+    updateModelStatus(message, isReady, description = null) {
         const statusText = this.modelStatus.querySelector('.status-text');
         const statusSpinner = this.modelStatus.querySelector('.status-spinner');
         const statusStrong = statusText.querySelector('strong');
@@ -877,17 +999,18 @@ insightsContent.innerHTML = html;
         if (isReady) {
             statusSpinner.style.display = 'none';
             statusStrong.textContent = message;
-            statusSpan.textContent = 'Ready to analyze images';
-            //statusStrong.style.color = '#10B981';
+            statusSpan.textContent = description || 'Ready to analyze';
+            statusStrong.style.color = 'black';
             
-            // Hide status after 3 seconds
+            // Hide status after 4 seconds
             setTimeout(() => {
                 this.modelStatus.classList.add('hidden');
-            }, 3000);
+            }, 4000);
         } else {
+            statusSpinner.style.display = 'block';
             statusStrong.textContent = message;
-            statusSpan.textContent = 'Please refresh the page';
-            statusStrong.style.color = '#EF4444';
+            statusSpan.textContent = description || 'Please wait...';
+            //statusStrong.style.color = isReady === false && !description ? '#EF4444' : '#FFFFFF';
         }
     }
 
@@ -912,20 +1035,19 @@ animateScoreRing(score) {
         const circumference = 377;
         const offset = circumference - (normalizedScore * circumference);
         
-// Get color based on actual score (matching score interpretation ranges)
-        const color = this.getScoreColor(score);
+        // Get category color based on score (same as meter and preview card)
+        const categoryColor = this.getCategoryColor(score);
+        const lighterCategoryColor = this.lightenColor(categoryColor, 30);
         
-        console.log(`Score: ${score}, Normalized: ${normalizedScore.toFixed(3)}, Color: ${color}`);
+        console.log(`Score: ${score}, Normalized: ${normalizedScore.toFixed(3)}, Category Color: ${categoryColor}`);
         
-// Update the gradient to match score interpretation ranges (reversed for circle)
+        // Update the gradient to use category colors
         const scoreGradient = document.getElementById('scoreGradient');
         if (scoreGradient) {
-            // Use exact colors from score ranges, reversed for clockwise circle
+            // Create a gradient from lighter to darker category color
             scoreGradient.innerHTML = `
-                <stop offset="0%" stop-color="#166534"/>
-                <stop offset="25%" stop-color="#1d4ed8"/>
-                <stop offset="50%" stop-color="#92400e"/>
-                <stop offset="100%" stop-color="#dc2626"/>
+                <stop offset="0%" stop-color="${lighterCategoryColor}"/>
+                <stop offset="100%" stop-color="${categoryColor}"/>
             `;
         }
         
@@ -948,6 +1070,19 @@ getScoreColor(score) {
             return '#92400e'; // Room to Grow - Orange/Brown (from CSS .score-range.fair)
         } else {
             return '#dc2626'; // Needs Work - Red (from CSS .score-range.poor)
+        }
+    }
+    
+    getCategoryColor(score) {
+        // Return lighter, more vibrant colors for the meter fill based on the categories shown in the image
+        if (score >= 4.5) {
+            return '#10B981'; // Viral Ready - Emerald Green
+        } else if (score >= 3.0) {
+            return '#3B82F6'; // High Potential - Blue
+        } else if (score >= 1.5) {
+            return '#F59E0B'; // Room to Grow - Amber
+        } else {
+            return '#EF4444'; // Needs Work - Red
         }
     }
     
@@ -998,9 +1133,13 @@ updateScoreMeter(score) {
         const maxScore = 6;
         const percentage = Math.max(0, Math.min(100, ((score - minScore) / (maxScore - minScore)) * 100));
         
-        // Animate the meter
+        // Get category color based on score
+        const categoryColor = this.getCategoryColor(score);
+        
+        // Animate the meter with category color
         setTimeout(() => {
             this.scoreMeter.style.width = `${percentage}%`;
+            this.scoreMeter.style.background = `linear-gradient(90deg, ${categoryColor}, ${this.lightenColor(categoryColor, 20)})`;
         }, 800);
     }
 
@@ -1013,10 +1152,10 @@ showSharingModal() {
         const scoreValue = this.scoreValue.textContent;
         const scoreTitle = this.scoreTitle.textContent;
         
-        // Get score-based colors
+        // Get category-based colors (same as meter)
         const score = parseFloat(scoreValue);
-        const scoreColor = this.getScoreColor(score);
-        const lighterColor = this.lightenColor(scoreColor, 30);
+        const categoryColor = this.getCategoryColor(score);
+        const lighterColor = this.lightenColor(categoryColor, 30);
         
         // Create modal overlay
         const modal = document.createElement('div');
@@ -1031,7 +1170,7 @@ showSharingModal() {
                 </div>
                 
                 <div class="share-preview">
-                    <div class="preview-card" style="background: linear-gradient(135deg, ${lighterColor}, ${scoreColor})">
+                    <div class="preview-card" style="background: linear-gradient(135deg, ${lighterColor}, ${categoryColor})">
                         <div class="preview-score">
                             <div class="preview-circle">
                                 <span class="preview-value">${scoreValue}</span>
@@ -1070,7 +1209,7 @@ showSharingModal() {
                         </button>
                         <button class="share-option-btn" onclick="popScore.downloadResultCard('${scoreValue}', '${scoreTitle}')">
                             <i class="fas fa-download"></i>
-                            Download Result Card
+                            Download
                         </button>
                     </div>
                 </div>
@@ -1084,7 +1223,7 @@ document.body.appendChild(modal);
     shareToTwitter(scoreValue, scoreTitle) {
         const text = `🔥 Just got a "${scoreTitle}" rating of ${scoreValue} on PopScore AI! 📸✨\n\nDiscover your image's viral potential with AI-powered analysis!\n\n👉 Try it yourself:`;
         const url = window.location.href;
-        const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+        const twitterUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
         window.open(twitterUrl, '_blank', 'width=600,height=400');
         document.querySelector('.share-modal-overlay').remove();
     }
@@ -1131,18 +1270,18 @@ downloadResultCard(scoreValue, scoreTitle) {
         canvas.width = 800;
         canvas.height = 600;
         
-// Get the score-based color
+        // Get the category-based color (same as meter)
         const score = parseFloat(scoreValue);
-        const scoreColor = this.getScoreColor(score);
+        const categoryColor = this.getCategoryColor(score);
         
-        console.log(`Result card - Score: ${score}, Color: ${scoreColor}, Title: ${scoreTitle}`);
+        console.log(`Result card - Score: ${score}, Color: ${categoryColor}, Title: ${scoreTitle}`);
         
-        // Create a gradient using the score color
+        // Create a gradient using the category color
         const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-        // Lighter version of the score color for gradient start
-        const lighterColor = this.lightenColor(scoreColor, 20);
+        // Lighter version of the category color for gradient start
+        const lighterColor = this.lightenColor(categoryColor, 20);
         gradient.addColorStop(0, lighterColor);
-        gradient.addColorStop(1, scoreColor);
+        gradient.addColorStop(1, categoryColor);
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
@@ -1170,10 +1309,10 @@ downloadResultCard(scoreValue, scoreTitle) {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
         ctx.fill();
         
-        // Add a subtle border with score color
+        // Add a subtle border with category color
         ctx.beginPath();
         ctx.arc(canvas.width / 2, 250, 80, 0, Math.PI * 2);
-        ctx.strokeStyle = scoreColor;
+        ctx.strokeStyle = categoryColor;
         ctx.lineWidth = 4;
         ctx.stroke();
         
@@ -1235,6 +1374,181 @@ downloadResultCard(scoreValue, scoreTitle) {
 
     showError(message) {
         this.showToast(`⚠️ ${message}`);
+    }
+}
+
+// Model Cache Manager using IndexedDB
+class ModelCacheManager {
+    constructor(cacheName, version) {
+        this.cacheName = cacheName;
+        this.version = version;
+        this.dbName = 'PopScoreModelDB';
+        this.storeName = 'models';
+        this.db = null;
+    }
+
+    async initDB() {
+        if (this.db) return this.db;
+
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.dbName, 1);
+
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+                this.db = request.result;
+                resolve(this.db);
+            };
+
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains(this.storeName)) {
+                    const store = db.createObjectStore(this.storeName, { keyPath: 'key' });
+                    store.createIndex('version', 'version', { unique: false });
+                    store.createIndex('timestamp', 'timestamp', { unique: false });
+                }
+            };
+        });
+    }
+
+    async cacheModel(modelData) {
+        try {
+            await this.initDB();
+            
+            const transaction = this.db.transaction([this.storeName], 'readwrite');
+            const store = transaction.objectStore(this.storeName);
+            
+            const cacheEntry = {
+                key: this.cacheName,
+                version: this.version,
+                timestamp: Date.now(),
+                data: modelData,
+                size: modelData.byteLength
+            };
+
+            await new Promise((resolve, reject) => {
+                const request = store.put(cacheEntry);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+
+            console.log(`Model cached successfully (${this.formatBytes(modelData.byteLength)})`);
+            return true;
+        } catch (error) {
+            console.error('Failed to cache model:', error);
+            return false;
+        }
+    }
+
+    async getModel() {
+        try {
+            await this.initDB();
+            
+            const transaction = this.db.transaction([this.storeName], 'readonly');
+            const store = transaction.objectStore(this.storeName);
+            
+            const cacheEntry = await new Promise((resolve, reject) => {
+                const request = store.get(this.cacheName);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+
+            if (!cacheEntry) {
+                console.log('No cached model found');
+                return null;
+            }
+
+            // Check version compatibility
+            if (cacheEntry.version !== this.version) {
+                console.log(`Cached model version (${cacheEntry.version}) doesn't match current (${this.version}), invalidating cache`);
+                await this.clearCache();
+                return null;
+            }
+
+            // Check if cache is too old (30 days)
+            const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+            if (Date.now() - cacheEntry.timestamp > thirtyDays) {
+                console.log('Cached model is too old, invalidating cache');
+                await this.clearCache();
+                return null;
+            }
+
+            console.log(`Found cached model (${this.formatBytes(cacheEntry.size)}, cached ${this.formatTimeSince(cacheEntry.timestamp)} ago)`);
+            return cacheEntry.data;
+        } catch (error) {
+            console.error('Failed to retrieve cached model:', error);
+            return null;
+        }
+    }
+
+    async clearCache() {
+        try {
+            await this.initDB();
+            
+            const transaction = this.db.transaction([this.storeName], 'readwrite');
+            const store = transaction.objectStore(this.storeName);
+            
+            await new Promise((resolve, reject) => {
+                const request = store.delete(this.cacheName);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+
+            console.log('Model cache cleared');
+            return true;
+        } catch (error) {
+            console.error('Failed to clear cache:', error);
+            return false;
+        }
+    }
+
+    async getCacheInfo() {
+        try {
+            await this.initDB();
+            
+            const transaction = this.db.transaction([this.storeName], 'readonly');
+            const store = transaction.objectStore(this.storeName);
+            
+            const cacheEntry = await new Promise((resolve, reject) => {
+                const request = store.get(this.cacheName);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+
+            if (!cacheEntry) return null;
+
+            return {
+                version: cacheEntry.version,
+                timestamp: cacheEntry.timestamp,
+                size: cacheEntry.size,
+                age: Date.now() - cacheEntry.timestamp
+            };
+        } catch (error) {
+            console.error('Failed to get cache info:', error);
+            return null;
+        }
+    }
+
+    formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    formatTimeSince(timestamp) {
+        const seconds = Math.floor((Date.now() - timestamp) / 1000);
+        
+        if (seconds < 60) return `${seconds} seconds`;
+        
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''}`;
+        
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''}`;
+        
+        const days = Math.floor(hours / 24);
+        return `${days} day${days > 1 ? 's' : ''}`;
     }
 }
 

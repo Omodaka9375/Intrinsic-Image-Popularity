@@ -391,6 +391,46 @@ main {
         0 0 0 2px rgba(255, 107, 107, 0.3);
 }
 
+.upload-area.disabled {
+    cursor: not-allowed;
+    filter: grayscale(0.3);
+    transform: none !important;
+}
+
+.upload-area.disabled::before {
+    display: none;
+}
+
+.upload-area.disabled:hover {
+    transform: none !important;
+    border-color: rgba(255, 255, 255, 0.3);
+    background: 
+        linear-gradient(145deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%),
+        rgba(255, 255, 255, 0.05);
+    box-shadow: 
+        0 25px 50px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.upload-area.disabled .upload-content h3,
+.upload-area.disabled .upload-content p {
+    opacity: 0.5;
+}
+
+.upload-area.disabled .upload-icon {
+    opacity: 0.6;
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.upload-area.disabled:hover .upload-icon {
+    transform: none !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 
+        0 15px 35px rgba(108, 99, 255, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
 .upload-icon {
     width: 100px;
     height: 100px;
@@ -546,7 +586,7 @@ main {
     border-radius: var(--radius-xl);
     overflow: hidden;
     box-shadow: var(--shadow-lg);
-    max-width: 500px;
+    max-width: 750px;
     margin: 0 auto;
 }
 
@@ -581,7 +621,7 @@ main {
 }
 
 .analyze-btn {
-    background: linear-gradient(135deg,  #e5d1d1, var(--secondary-color));
+    background: #ff8d49;
     color: var(--text-white);
     border: none;
     padding: var(--space-md) var(--space-xl);
@@ -784,16 +824,22 @@ main {
 .meter-track {
     width: 100%;
     height: 8px;
-    background: var(--border);
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
     overflow: hidden;
     position: relative;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .meter-fill {
     height: 100%;
-    background: linear-gradient(90deg, #dc2626, #92400e, #1d4ed8, #166534);
-    transition: width 1s ease-out;
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+    border-radius: inherit;
+    transition: width 1s ease-out, background 0.3s ease;
     width: 0;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 .meter-labels {
     display: flex;
@@ -838,13 +884,13 @@ main {
 }
 
 .share-btn {
-    background: linear-gradient(135deg, var(--accent-color), var(--primary-color));
+    background: var(--primary-color);
     color: var(--text-white);
     border-color: var(--accent-color);
 }
 
 .share-btn:hover {
-    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    background: var(--primary-color);
     border-color: var(--primary-color);
 }
 
@@ -1007,7 +1053,6 @@ main {
 }
 
 .insight-list li::before {
-    content: "✓";
     position: absolute;
     left: 0;
     color: var(--success-color);
@@ -1088,7 +1133,7 @@ main {
 }
 
 .status-icon i {
-    color: var(--text-white);
+ 
     font-size: 1rem;
 }
 
@@ -1099,7 +1144,7 @@ main {
 
 .status-text strong {
     display: block;
-    color: var(--text-primary);
+
     font-size: 0.875rem;
     font-weight: 600;
     margin-bottom: 0.125rem;
@@ -1107,7 +1152,7 @@ main {
 
 .status-text span {
     display: block;
-    color: var(--text-secondary);
+
     font-size: 0.75rem;
 }
 
@@ -1123,7 +1168,7 @@ main {
 
 /* Footer */
 footer {
-    margin-top: var(--space-xl);
+
     padding: var(--space-xl) 0;
     background: 
         linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%),
@@ -1581,9 +1626,10 @@ from {
 
 .platform-buttons {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-    gap: var(--space-sm);
+    grid-template-columns: repeat(auto-fit, minmax(95px, 0fr));
+    gap: 0.75rem;
     margin-bottom: var(--space-lg);
+    margin-left: 10px;
 }
 
 .platform-btn {

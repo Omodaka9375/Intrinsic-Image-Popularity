@@ -1,7 +1,11 @@
-# Intrinsic Image Popularity Test
+# PopScore
+**Intrinsic Image Popularity Assesment**
 
 This is a browser-based implementation of the Intrinsic Image Popularity Assessment model that predicts how popular an image would be on Instagram based solely on its visual content.
 
+## Web App
+
+[PopScore.app](https://popscore.app)
 ## Features
 
 - **Drag & Drop Interface**: Simply drag and drop images or browse files
